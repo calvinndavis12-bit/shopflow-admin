@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopflow — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e0c;
+  --surface: #161614;
+  --surface2: #1e1e1b;
+  --surface3: #272724;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text: #f0efe8;
+  --text2: #9b9888;
+  --text3: #5a5950;
+  --green: #1fad78;
+  --green-dim: rgba(31,173,120,0.12);
+  --red: #e05252;
+  --red-dim: rgba(224,82,82,0.12);
+  --amber: #e09e3a;
+  --amber-dim: rgba(224,158,58,0.12);
+  --blue: #4a9eff;
+  --blue-dim: rgba(74,158,255,0.1);
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+/* Topbar */
+.topbar {
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+}
+.logo { font-size: 17px; font-weight: 500; letter-spacing: -0.4px; }
+.logo em { color: var(--green); font-style: normal; }
+.logo sup { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; margin-left: 4px; vertical-align: super; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.admin-chip {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.refresh-btn {
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.refresh-btn:hover { border-color: var(--border2); color: var(--text); }
+.refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+/* Summary metrics */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 2rem; }
+.metric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.2rem 1.4rem;
+}
+.metric-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.metric-value { font-size: 28px; font-weight: 300; color: var(--text); letter-spacing: -1px; }
+.metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.metric-value.green { color: var(--green); }
+.metric-value.amber { color: var(--amber); }
+
+/* Section header */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.section-title { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* Client cards */
+.clients-grid { display: flex; flex-direction: column; gap: 10px; }
+
+.client-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+.client-card:hover { border-color: var(--border2); }
+.client-card.expanded { border-color: var(--border2); }
+
+.client-row {
+  display: grid;
+  grid-template-columns: 2.4fr 140px 130px 130px 130px 100px;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.client-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.client-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.status-badge .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-live { background: var(--green-dim); color: var(--green); }
+.status-live .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-down { background: var(--red-dim); color: var(--red); }
+.status-down .dot { background: var(--red); }
+.status-checking { background: var(--surface2); color: var(--text3); }
+.status-checking .dot { background: var(--text3); }
+
+.stat-cell { }
+.stat-num { font-size: 18px; font-weight: 400; color: var(--text); font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
+.stat-label { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+.plan-badge {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'DM Mono', monospace;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.plan-pilot { background: var(--amber-dim); color: var(--amber); }
+.plan-active { background: var(--blue-dim); color: var(--blue); }
+.plan-setup { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+
+.expand-icon {
+  color: var(--text3);
+  font-size: 16px;
+  transition: transform 0.2s;
+  text-align: right;
+}
+.client-card.expanded .expand-icon { transform: rotate(180deg); }
+
+/* Expanded detail */
+.client-detail {
+  display: none;
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  background: var(--surface2);
+}
+.client-card.expanded .client-detail { display: block; }
+
+.detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.detail-block { }
+.detail-block-title { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.detail-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.detail-row:last-child { border-bottom: none; }
+.detail-key { color: var(--text3); }
+.detail-val { color: var(--text); font-family: 'DM Mono', monospace; font-size: 11px; }
+.detail-val.green { color: var(--green); }
+.detail-val.red { color: var(--red); }
+.detail-val.amber { color: var(--amber); }
+
+.detail-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn-sm {
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  transition: all 0.12s;
+}
+.btn-sm:hover { background: var(--surface3); color: var(--text); }
+.btn-sm.primary { background: var(--green); border-color: var(--green); color: #000; font-weight: 500; }
+.btn-sm.primary:hover { background: #18956a; }
+
+/* Add client modal */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(3px); }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg); width: 520px; max-width: 100%; max-height: 88vh; overflow-y: auto; animation: slideUp 0.18s ease; }
+@keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.modal-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 15px; font-weight: 500; }
+.modal-close { font-size: 20px; color: var(--text3); cursor: pointer; background: none; border: none; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 20px 22px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-full { grid-column: 1/-1; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--text2); }
+.form-input, .form-select {
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  padding: 8px 11px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.form-input:focus, .form-select:focus { border-color: var(--green); }
+.form-input::placeholder { color: var(--text3); }
+.modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+.btn-cancel { font-size: 13px; font-family: 'DM Sans', sans-serif; padding: 8px 16px; border: 1px solid var(--border2); border-radius: var(--radius); background: transparent; color: var(--text2); cursor: pointer; }
+.btn-save { font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; padding: 8px 20px; border: none; border-radius: var(--radius); background: var(--green); color: #000; cursor: pointer; }
+.btn-save:hover { background: #18956a; }
+.btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--surface); border: 1px solid var(--border2); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; padding: 10px 20px; border-radius: var(--radius); z-index: 999; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+.loading-state { padding: 4rem; text-align: center; color: var(--text3); font-size: 13px; }
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--surface3); border-top-color: var(--green); border-radius: 50%; animation: spin 0.65s linear infinite; vertical-align: middle; margin-right: 8px; }
+
+.last-check { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+.add-client-btn {
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  padding: 7px 16px;
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.add-client-btn:hover { background: var(--green-dim); }
+
+@media (max-width: 900px) {
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .client-row { grid-template-columns: 1fr 120px 80px; }
+  .client-row > *:nth-child(n+4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Shop<em>flow</em><sup>admin</sup></div>
+  <div class="topbar-right">
+    <span class="last-check" id="last-check">—</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshAll()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+      Refresh
+    </button>
+    <div class="admin-chip">Calvin · HQ</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Metrics -->
+  <div class="metrics" id="metrics">
+    <div class="metric">
+      <div class="metric-label">Total clients</div>
+      <div class="metric-value" id="m-clients">—</div>
+      <div class="metric-sub" id="m-clients-sub">loading...</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Bots live</div>
+      <div class="metric-value green" id="m-live">—</div>
+      <div class="metric-sub" id="m-live-sub">checking...</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Conversations today</div>
+      <div class="metric-value" id="m-convos">—</div>
+      <div class="metric-sub">across all clients</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Product clicks today</div>
+      <div class="metric-value" id="m-clicks">—</div>
+      <div class="metric-sub">across all clients</div>
+    </div>
+  </div>
+
+  <!-- Clients -->
+  <div class="section-head">
+    <div class="section-title">Client accounts</div>
+    <button class="add-client-btn" onclick="openAddClient()">+ Add client</button>
+  </div>
+  <div class="clients-grid" id="clients-grid">
+    <div class="loading-state"><span class="spinner"></span>Loading clients...</div>
+  </div>
+
+</div>
+
+<!-- Add client modal -->
+<div class="overlay" id="add-overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add new client</div>
+      <button class="modal-close" onclick="closeAdd()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Business name</label>
+          <input class="form-input" id="a-name" placeholder="e.g. Inspired by Lux" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vertical</label>
+          <select class="form-select" id="a-vertical">
+            <option value="Cannabis">Cannabis</option>
+            <option value="Fragrance">Fragrance</option>
+            <option value="Automotive">Automotive</option>
+            <option value="Beauty">Beauty</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Health">Health</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" id="a-location" placeholder="e.g. Phoenix, AZ" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bot name</label>
+          <input class="form-input" id="a-botname" placeholder="e.g. Lux" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plan</label>
+          <select class="form-select" id="a-plan">
+            <option value="pilot">Pilot (free 30 days)</option>
+            <option value="active">Active (paying)</option>
+            <option value="setup">Setup (pending)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Monthly price ($)</label>
+          <input class="form-input" id="a-price" type="number" placeholder="349" />
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Proxy URL</label>
+          <input class="form-input" id="a-proxy" placeholder="https://lux-proxy-production.up.railway.app" />
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Contact email</label>
+          <input class="form-input" id="a-email" placeholder="owner@business.com" type="email" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAdd()">Cancel</button>
+      <button class="btn-save" id="a-save-btn" onclick="saveNewClient()">Add client</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL  = 'https://pxbbmymmgszbxrfyktzk.supabase.co';
+const SUPA_KEY  = 'sb_publishable_8x-ZkoE7MuIIbpEpa8CHWQ_g1yNU02U';
+
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let clients = [];
+let botStatuses = {};  // clientId → 'live' | 'down' | 'checking'
+let analytics = {};    // clientId → { conversations, clicks }
+
+// ── Init ──────────────────────────────────────────────
+async function init() {
+  await loadClients();
+  await loadAnalytics();
+  renderMetrics();
+  renderClients();
+  checkAllBots();
+}
+
+async function loadClients() {
+  const { data, error } = await db.from('clients').select('*').order('created_at');
+  if (error) { showToast('Failed to load clients', 'error'); return; }
+  clients = data || [];
+}
+
+async function loadAnalytics() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await db.from('analytics').select('*').eq('date', today);
+  analytics = {};
+  (data || []).forEach(r => {
+    analytics[r.client_id] = {
+      conversations: r.conversations || 0,
+      clicks: r.checkout_clicks || 0,
+    };
+  });
+}
+
+// ── Bot status checks ─────────────────────────────────
+async function checkAllBots() {
+  // Mark all as checking first
+  clients.forEach(c => { botStatuses[c.id] = 'checking'; });
+  renderClients();
+
+  // Ping each proxy concurrently
+  await Promise.all(clients.map(c => checkBot(c)));
+  renderClients();
+  renderMetrics();
+
+  const now = new Date();
+  document.getElementById('last-check').textContent =
+    `Last checked ${now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+}
+
+async function checkBot(client) {
+  const url = client.website_url; // we store proxy URL in website_url for now
+  if (!url) { botStatuses[client.id] = 'down'; return; }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${url.replace(/\/$/, '')}/config`, {
+      signal: controller.signal,
+      mode: 'cors',
+    });
+    clearTimeout(timeout);
+    botStatuses[client.id] = res.ok ? 'live' : 'down';
+  } catch {
+    botStatuses[client.id] = 'down';
+  }
+}
+
+// ── Render ────────────────────────────────────────────
+function renderMetrics() {
+  const total = clients.length;
+  const live  = clients.filter(c => botStatuses[c.id] === 'live').length;
+  const down  = clients.filter(c => botStatuses[c.id] === 'down').length;
+  const totalConvos  = Object.values(analytics).reduce((s, a) => s + a.conversations, 0);
+  const totalClicks  = Object.values(analytics).reduce((s, a) => s + a.clicks, 0);
+
+  document.getElementById('m-clients').textContent = total;
+  document.getElementById('m-clients-sub').textContent =
+    `${clients.filter(c=>c.plan==='active').length} active · ${clients.filter(c=>c.plan==='pilot').length} pilot`;
+  document.getElementById('m-live').textContent = live;
+  document.getElementById('m-live').className = 'metric-value ' + (down > 0 ? 'amber' : 'green');
+  document.getElementById('m-live-sub').textContent =
+    down > 0 ? `${down} bot${down>1?'s':''} down` : 'all systems go';
+  document.getElementById('m-convos').textContent = totalConvos || '—';
+  document.getElementById('m-clicks').textContent = totalClicks || '—';
+}
+
+function renderClients() {
+  const grid = document.getElementById('clients-grid');
+  if (!clients.length) {
+    grid.innerHTML = '<div class="loading-state" style="color:var(--text3)">No clients yet. Add your first one.</div>';
+    return;
+  }
+
+  grid.innerHTML = clients.map(c => {
+    const status = botStatuses[c.id] || 'checking';
+    const stats  = analytics[c.id] || { conversations: 0, clicks: 0 };
+
+    const statusBadge = status === 'live'
+      ? `<span class="status-badge status-live"><span class="dot"></span>Live</span>`
+      : status === 'down'
+        ? `<span class="status-badge status-down"><span class="dot"></span>Down</span>`
+        : `<span class="status-badge status-checking"><span class="dot"></span>Checking…</span>`;
+
+    const planClass = c.plan === 'pilot' ? 'plan-pilot' : c.plan === 'active' ? 'plan-active' : 'plan-setup';
+
+    return `
+    <div class="client-card" id="card-${c.id}" onclick="toggleCard('${c.id}')">
+      <div class="client-row">
+        <div>
+          <div class="client-name">${c.name}</div>
+          <div class="client-meta">${c.vertical || ''}${c.location ? ' · ' + c.location : ''}${c.bot_name ? ' · bot: ' + c.bot_name : ''}</div>
+        </div>
+        <div>${statusBadge}</div>
+        <div class="stat-cell">
+          <div class="stat-num">${stats.conversations || '—'}</div>
+          <div class="stat-label">convos today</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">${stats.clicks || '—'}</div>
+          <div class="stat-label">clicks today</div>
+        </div>
+        <div><span class="plan-badge ${planClass}">${c.plan || 'setup'}</span></div>
+        <div class="expand-icon">▾</div>
+      </div>
+      <div class="client-detail" id="detail-${c.id}">
+        <div class="detail-grid">
+          <div class="detail-block">
+            <div class="detail-block-title">Bot</div>
+            <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val ${status==='live'?'green':status==='down'?'red':''}">${status}</span></div>
+            <div class="detail-row"><span class="detail-key">Bot name</span><span class="detail-val">${c.bot_name || '—'}</span></div>
+            <div class="detail-row"><span class="detail-key">Proxy URL</span><span class="detail-val" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${c.website_url || '—'}</span></div>
+          </div>
+          <div class="detail-block">
+            <div class="detail-block-title">Account</div>
+            <div class="detail-row"><span class="detail-key">Plan</span><span class="detail-val ${c.plan==='active'?'green':c.plan==='pilot'?'amber':''}">${c.plan || '—'}</span></div>
+            <div class="detail-row"><span class="detail-key">Price</span><span class="detail-val">${c.plan_price ? '$'+c.plan_price+'/mo' : '—'}</span></div>
+            <div class="detail-row"><span class="detail-key">Contact</span><span class="detail-val">${c.contact_email || '—'}</span></div>
+          </div>
+          <div class="detail-block">
+            <div class="detail-block-title">Today's stats</div>
+            <div class="detail-row"><span class="detail-key">Conversations</span><span class="detail-val">${stats.conversations || 0}</span></div>
+            <div class="detail-row"><span class="detail-key">Product clicks</span><span class="detail-val">${stats.clicks || 0}</span></div>
+            <div class="detail-row"><span class="detail-key">Pilot ends</span><span class="detail-val">${c.pilot_end || '—'}</span></div>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-sm primary" onclick="event.stopPropagation();pingBot('${c.id}', '${c.website_url||''}')">Re-check bot</button>
+          <button class="btn-sm" onclick="event.stopPropagation();editClient('${c.id}')">Edit client</button>
+          ${c.website_url ? `<button class="btn-sm" onclick="event.stopPropagation();window.open('${c.website_url}/config','_blank')">View /config</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById('card-' + id);
+  card.classList.toggle('expanded');
+}
+
+async function pingBot(clientId, proxyUrl) {
+  const client = clients.find(c => c.id === clientId);
+  if (!client) return;
+  botStatuses[clientId] = 'checking';
+  renderClients();
+  await checkBot(client);
+  renderClients();
+  renderMetrics();
+  showToast(botStatuses[clientId] === 'live' ? 'Bot is live' : 'Bot is not responding', botStatuses[clientId] === 'live' ? 'success' : 'error');
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  await loadAnalytics();
+  await checkAllBots();
+  renderMetrics();
+  renderClients();
+  btn.classList.remove('spinning');
+  showToast('Dashboard refreshed', 'success');
+}
+
+// ── Add client ────────────────────────────────────────
+function openAddClient() {
+  ['a-name','a-location','a-botname','a-price','a-proxy','a-email'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById('a-vertical').value = 'Cannabis';
+  document.getElementById('a-plan').value = 'pilot';
+  document.getElementById('add-overlay').classList.add('open');
+}
+function closeAdd() { document.getElementById('add-overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target.id === 'add-overlay') closeAdd(); }
+
+async function saveNewClient() {
+  const btn = document.getElementById('a-save-btn');
+  btn.disabled = true; btn.textContent = 'Adding...';
+
+  const name = document.getElementById('a-name').value.trim();
+  if (!name) { showToast('Business name required', 'error'); btn.disabled=false; btn.textContent='Add client'; return; }
+
+  const plan = document.getElementById('a-plan').value;
+  const today = new Date().toISOString().split('T')[0];
+  const pilotEnd = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+
+  const payload = {
+    name,
+    vertical:      document.getElementById('a-vertical').value,
+    location:      document.getElementById('a-location').value.trim() || null,
+    bot_name:      document.getElementById('a-botname').value.trim() || null,
+    plan,
+    plan_price:    parseFloat(document.getElementById('a-price').value) || null,
+    website_url:   document.getElementById('a-proxy').value.trim() || null,
+    contact_email: document.getElementById('a-email').value.trim() || null,
+    status:        plan === 'setup' ? 'setup' : 'active',
+    bot_status:    'offline',
+    proxy_status:  'not_connected',
+    pilot_start:   plan === 'pilot' ? today : null,
+    pilot_end:     plan === 'pilot' ? pilotEnd : null,
+  };
+
+  const { error } = await db.from('clients').insert(payload);
+  btn.disabled = false; btn.textContent = 'Add client';
+
+  if (error) { showToast('Failed to add client: ' + error.message, 'error'); return; }
+  closeAdd();
+  await loadClients();
+  renderClients();
+  renderMetrics();
+  // Check the new client's bot
+  const newClient = clients[clients.length - 1];
+  if (newClient) checkBot(newClient).then(() => { renderClients(); renderMetrics(); });
+  showToast('Client added', 'success');
+}
+
+function editClient(id) {
+  showToast('Edit client coming soon', '');
+}
+
+// ── Utils ─────────────────────────────────────────────
+let toastT;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>
