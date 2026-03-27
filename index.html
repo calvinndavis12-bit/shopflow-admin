@@ -433,6 +433,47 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   </div>
 </div>
 
+<!-- Edit client modal -->
+<div class="overlay" id="edit-overlay" onclick="if(event.target.id==='edit-overlay')closeEdit()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit client</div>
+      <button class="modal-close" onclick="closeEdit()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Business name</label><input class="form-input" id="e-name" /></div>
+        <div class="form-group"><label class="form-label">Vertical</label>
+          <select class="form-select" id="e-vertical">
+            <option value="Cannabis">Cannabis</option><option value="Fragrance">Fragrance</option>
+            <option value="Med Spa">Med Spa</option><option value="Automotive">Automotive</option>
+            <option value="Beauty">Beauty</option><option value="Food & Beverage">Food & Beverage</option>
+            <option value="Fashion">Fashion</option><option value="Health">Health</option>
+            <option value="Golf">Golf</option><option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="e-location" /></div>
+        <div class="form-group"><label class="form-label">Bot name</label><input class="form-input" id="e-botname" /></div>
+        <div class="form-group"><label class="form-label">Plan</label>
+          <select class="form-select" id="e-plan">
+            <option value="pilot">Pilot</option><option value="active">Active</option><option value="setup">Setup</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Monthly price ($)</label><input class="form-input" id="e-price" type="number" /></div>
+        <div class="form-group form-full"><label class="form-label">Proxy URL</label><input class="form-input" id="e-proxy" /></div>
+        <div class="form-group form-full"><label class="form-label">Contact email</label><input class="form-input" id="e-email" type="email" /></div>
+        <div class="form-group"><label class="form-label">Pilot start</label><input class="form-input" id="e-pilot-start" type="date" /></div>
+        <div class="form-group"><label class="form-label">Pilot end</label><input class="form-input" id="e-pilot-end" type="date" /></div>
+        <div class="form-group form-full"><label class="form-label">Notes</label><input class="form-input" id="e-notes" placeholder="Internal notes..." /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEdit()">Cancel</button>
+      <button class="btn-save" id="e-save-btn" onclick="saveEditClient()">Save changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -672,8 +713,54 @@ async function saveNewClient() {
   showToast('Client added', 'success');
 }
 
+let editingClientId = null;
+
 function editClient(id) {
-  showToast('Edit client coming soon', '');
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  editingClientId = id;
+  document.getElementById('e-name').value = c.name || '';
+  document.getElementById('e-vertical').value = c.vertical || 'Other';
+  document.getElementById('e-location').value = c.location || '';
+  document.getElementById('e-botname').value = c.bot_name || '';
+  document.getElementById('e-plan').value = c.plan || 'pilot';
+  document.getElementById('e-price').value = c.plan_price || '';
+  document.getElementById('e-proxy').value = c.website_url || '';
+  document.getElementById('e-email').value = c.contact_email || '';
+  document.getElementById('e-pilot-start').value = c.pilot_start || '';
+  document.getElementById('e-pilot-end').value = c.pilot_end || '';
+  document.getElementById('e-notes').value = c.notes || '';
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function closeEdit() {
+  document.getElementById('edit-overlay').classList.remove('open');
+}
+
+async function saveEditClient() {
+  const btn = document.getElementById('e-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const payload = {
+    name:          document.getElementById('e-name').value.trim(),
+    vertical:      document.getElementById('e-vertical').value,
+    location:      document.getElementById('e-location').value.trim() || null,
+    bot_name:      document.getElementById('e-botname').value.trim() || null,
+    plan:          document.getElementById('e-plan').value,
+    plan_price:    parseFloat(document.getElementById('e-price').value) || null,
+    website_url:   document.getElementById('e-proxy').value.trim() || null,
+    contact_email: document.getElementById('e-email').value.trim() || null,
+    pilot_start:   document.getElementById('e-pilot-start').value || null,
+    pilot_end:     document.getElementById('e-pilot-end').value || null,
+    notes:         document.getElementById('e-notes').value.trim() || null,
+  };
+  const { error } = await db.from('clients').update(payload).eq('id', editingClientId);
+  btn.disabled = false; btn.textContent = 'Save changes';
+  if (error) { showToast('Save failed: ' + error.message, 'error'); return; }
+  closeEdit();
+  await loadClients();
+  renderClients();
+  renderMetrics();
+  showToast('Client updated', 'success');
 }
 
 // ── Utils ─────────────────────────────────────────────
