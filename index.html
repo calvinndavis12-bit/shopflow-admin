@@ -303,9 +303,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .pipe-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-family:'DM Mono',monospace;margin-top:3px;}
 
 .pipeline-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
-.pipeline-head{display:grid;grid-template-columns:1.8fr 120px 130px 140px 110px 120px 80px;gap:8px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);}
+.pipeline-head{display:grid;grid-template-columns:2fr 140px 160px 100px 100px 70px;gap:12px;padding:10px 18px;background:var(--surface2);border-bottom:1px solid var(--border);}
 .pipe-col-h{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;font-family:'DM Mono',monospace;}
-.pipeline-row{display:grid;grid-template-columns:1.8fr 120px 130px 140px 110px 120px 80px;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background 0.1s;cursor:pointer;}
+.pipeline-row{display:grid;grid-template-columns:2fr 140px 160px 100px 100px 70px;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background 0.1s;cursor:pointer;}
 .pipeline-row:last-child{border-bottom:none;}
 .pipeline-row:hover{background:var(--surface2);}
 .pipe-biz{font-size:13px;font-weight:500;color:var(--text);}
@@ -440,7 +440,6 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       <div class="pipeline-head">
         <div class="pipe-col-h">Business</div>
         <div class="pipe-col-h">Status</div>
-        <div class="pipe-col-h">Demo URL</div>
         <div class="pipe-col-h">Notes</div>
         <div class="pipe-col-h">Email sent</div>
         <div class="pipe-col-h">Follow up</div>
@@ -968,8 +967,7 @@ function renderPipeline(data) {
         <div class="pipe-sub">${p.vertical}${p.price?' · $'+p.price+'/mo':''}</div>
       </div>
       <div><span class="pipe-status ${STATUS_CLASSES[p.status]||'ps-contacted'}">${STATUS_LABELS[p.status]||p.status}</span></div>
-      <div class="pipe-demo">${p.demo?`<a href="https://${p.demo}" target="_blank" onclick="event.stopPropagation()">${p.demo}</a>`:'<span style="color:var(--text3)">—</span>'}</div>
-      <div class="pipe-notes" title="${p.notes||''}">${p.notes||'—'}</div>
+      <div class="pipe-notes" title="${p.notes||''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.notes||'—'}</div>
       <div class="pipe-date">${p.emailDate||'—'}</div>
       <div class="pipe-date ${p.followup && p.followup <= new Date().toISOString().split('T')[0] ? 'style="color:var(--amber)"' : ''}">${p.followup||'—'}</div>
       <div><button class="pipe-edit-btn" onclick="event.stopPropagation();openProspectModal('${p.id}')">Edit</button></div>
