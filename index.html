@@ -328,6 +328,38 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 /* Prospect modal */
 #prospect-overlay .modal{width:620px;}
+
+/* ── Onboarding tab ── */
+.ob-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+.ob-progress{font-size:12px;font-family:'DM Mono',monospace;color:var(--text3);}
+.ob-progress span{color:var(--green);font-weight:500;}
+.ob-phase{margin-bottom:2rem;}
+.ob-phase-title{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;font-family:'DM Mono',monospace;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.ob-phase-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-family:'DM Mono',monospace;}
+.ob-phase-done{background:var(--green-dim);color:var(--green);}
+.ob-phase-pending{background:var(--surface2);color:var(--text3);}
+.ob-items{display:flex;flex-direction:column;gap:6px;}
+.ob-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:all 0.15s;user-select:none;}
+.ob-item:hover{border-color:var(--border2);}
+.ob-item.done{opacity:0.5;}
+.ob-item.done .ob-item-title{text-decoration:line-through;color:var(--text3);}
+.ob-checkbox{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all 0.15s;background:transparent;}
+.ob-item.done .ob-checkbox{background:var(--green);border-color:var(--green);}
+.ob-check-icon{display:none;color:#fff;font-size:12px;}
+.ob-item.done .ob-check-icon{display:block;}
+.ob-item-content{flex:1;min-width:0;}
+.ob-item-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.ob-item-desc{font-size:12px;color:var(--text3);line-height:1.5;}
+.ob-item-tag{display:inline-flex;font-size:10px;padding:2px 8px;border-radius:10px;margin-top:6px;font-family:'DM Mono',monospace;}
+.ob-tag-action{background:var(--blue-dim);color:var(--blue);}
+.ob-tag-auto{background:var(--green-dim);color:var(--green);}
+.ob-tag-client{background:var(--amber-dim);color:var(--amber);}
+.ob-reset-btn{font-size:12px;font-family:'DM Sans',sans-serif;padding:5px 14px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text3);cursor:pointer;}
+.ob-reset-btn:hover{color:var(--red);border-color:var(--red);}
+.ob-congrats{background:var(--green-dim);border:1px solid rgba(31,173,120,0.3);border-radius:var(--radius-lg);padding:1.5rem;text-align:center;display:none;}
+.ob-congrats.show{display:block;}
+.ob-congrats-title{font-size:18px;font-weight:500;color:var(--green);margin-bottom:6px;}
+.ob-congrats-sub{font-size:13px;color:var(--text2);}
 </style>
 </head>
 <body>
@@ -384,6 +416,10 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
     <button class="admin-tab" onclick="switchAdminTab('pipeline')">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       Pipeline <span id="pipe-count-badge" style="font-size:10px;background:var(--surface3);padding:1px 6px;border-radius:10px;margin-left:4px;font-family:'DM Mono',monospace;">—</span>
+    </button>
+    <button class="admin-tab" onclick="switchAdminTab('onboarding')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Onboarding
     </button>
   </div>
 
@@ -448,6 +484,175 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       <div id="pipeline-list"><div class="loading-state"><span class="spinner"></span>Loading...</div></div>
     </div>
   </div><!-- end tab-pipeline -->
+
+  <!-- Onboarding tab -->
+  <div class="tab-section" id="tab-onboarding">
+    <div class="ob-header">
+      <div>
+        <div class="section-title">Client onboarding checklist</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">From signed agreement to live bot in one day.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="ob-progress">Progress: <span id="ob-done-count">0</span> / <span id="ob-total-count">0</span></div>
+        <button class="ob-reset-btn" onclick="resetOnboarding()">Reset</button>
+      </div>
+    </div>
+
+    <div class="ob-congrats" id="ob-congrats">
+      <div class="ob-congrats-title">🎉 Client is live!</div>
+      <div class="ob-congrats-sub">All steps complete. Add them to Supabase and send the portal invite to finish onboarding.</div>
+    </div>
+
+    <!-- Phase 1 -->
+    <div class="ob-phase">
+      <div class="ob-phase-title">
+        Phase 1 — Before the call <span id="ph1-badge" class="ob-phase-badge ob-phase-pending">0/3</span>
+      </div>
+      <div class="ob-items">
+        <div class="ob-item" id="ob-1" onclick="toggleOb('ob-1')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Build the custom demo</div>
+            <div class="ob-item-desc">Use the demo template. Set bot name, colors, categories, quiz, and system prompt. Deploy to Cloudflare Pages with a custom subdomain (e.g. businessname.tryshopflow.com).</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-2" onclick="toggleOb('ob-2')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Research the business</div>
+            <div class="ob-item-desc">Check their website, Google reviews, social media. Know their top products, pricing, and any current promotions before the call.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-3" onclick="toggleOb('ob-3')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Send the pilot agreement</div>
+            <div class="ob-item-desc">Fill in client name, business, website, and select the pricing tier ($499/$699/$999). Email the signed agreement before or during the call.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="ob-phase">
+      <div class="ob-phase-title">
+        Phase 2 — Agreement signed <span id="ph2-badge" class="ob-phase-badge ob-phase-pending">0/3</span>
+      </div>
+      <div class="ob-items">
+        <div class="ob-item" id="ob-4" onclick="toggleOb('ob-4')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Add client to Supabase</div>
+            <div class="ob-item-desc">Go to admin dashboard → Add client. Fill in name, vertical, bot name, plan, price, proxy URL, and contact email. Copy the new client_id.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-5" onclick="toggleOb('ob-5')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Seed products and deals</div>
+            <div class="ob-item-desc">Add the client's products and deals to Supabase — either via the client portal or direct SQL. The bot pulls these automatically every 5 minutes.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-6" onclick="toggleOb('ob-6')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Add client slug to proxy</div>
+            <div class="ob-item-desc">Open proxy-server.js in the Lux-proxy GitHub repo. Add their entry to the CLIENTS object with name, clientId, and botName. Commit — Railway redeploys automatically.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="ob-phase">
+      <div class="ob-phase-title">
+        Phase 3 — Build & deploy the bot <span id="ph3-badge" class="ob-phase-badge ob-phase-pending">0/4</span>
+      </div>
+      <div class="ob-items">
+        <div class="ob-item" id="ob-7" onclick="toggleOb('ob-7')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Build the production widget</div>
+            <div class="ob-item-desc">Use the demo template. Update CONFIG to point to the live proxy URL (lux-proxy-production.up.railway.app/:slug/api/chat). Set the correct bot name, colors, and system prompt.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-8" onclick="toggleOb('ob-8')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Deploy widget to Cloudflare Pages</div>
+            <div class="ob-item-desc">Create a GitHub repo (e.g. businessname-widget). Upload widget as index.html. Connect to Cloudflare Pages. Set custom domain (e.g. businessname-widget.gocannaflow.com).</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-9" onclick="toggleOb('ob-9')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Send setup guide to their developer</div>
+            <div class="ob-item-desc">Use the MMS-Grace-Widget-Setup-Guide template. Update the script tag URL to their widget URL. Email to their web developer or whoever manages the site.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-10" onclick="toggleOb('ob-10')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Developer installs the script tag</div>
+            <div class="ob-item-desc">Their developer adds the script tag to the site before &lt;/body&gt;. Bot goes live automatically — no further action needed from you.</div>
+            <span class="ob-item-tag ob-tag-client">Client does this</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 4 -->
+    <div class="ob-phase">
+      <div class="ob-phase-title">
+        Phase 4 — Client access & billing <span id="ph4-badge" class="ob-phase-badge ob-phase-pending">0/4</span>
+      </div>
+      <div class="ob-items">
+        <div class="ob-item" id="ob-11" onclick="toggleOb('ob-11')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Create portal login</div>
+            <div class="ob-item-desc">Go to Supabase → Authentication → Users → Invite user. Enter their email. They'll get a link to set their password for portal.tryshopflow.com.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-12" onclick="toggleOb('ob-12')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Link portal login to client record</div>
+            <div class="ob-item-desc">Copy their UUID from Supabase Auth → Users. Run: UPDATE clients SET user_id = '[UUID]' WHERE id = '[client_id]' in SQL Editor.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-13" onclick="toggleOb('ob-13')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Send portal welcome email</div>
+            <div class="ob-item-desc">Email the client with their portal URL (portal.tryshopflow.com), login instructions, and a quick overview of what they can manage — products, deals, analytics, billing.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+        <div class="ob-item" id="ob-14" onclick="toggleOb('ob-14')">
+          <div class="ob-checkbox"><span class="ob-check-icon">✓</span></div>
+          <div class="ob-item-content">
+            <div class="ob-item-title">Set up billing</div>
+            <div class="ob-item-desc">Send the client a Stripe payment link for their monthly plan. Confirm first payment received. Update their plan from 'pilot' to 'active' in the admin dashboard after pilot ends.</div>
+            <span class="ob-item-tag ob-tag-action">You do this</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end tab-onboarding -->
+
 
 </div><!-- end main -->
 
@@ -902,6 +1107,66 @@ function showToast(msg, type='') {
 }
 
 init();
+// ── Onboarding checklist ─────────────────────────────
+const OB_KEY = 'sf_onboarding_v1';
+const OB_PHASES = {
+  ph1: ['ob-1','ob-2','ob-3'],
+  ph2: ['ob-4','ob-5','ob-6'],
+  ph3: ['ob-7','ob-8','ob-9','ob-10'],
+  ph4: ['ob-11','ob-12','ob-13','ob-14'],
+};
+const OB_ALL = Object.values(OB_PHASES).flat();
+
+function loadOnboarding() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(OB_KEY)) || [];
+    saved.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('done');
+    });
+  } catch {}
+  updateObProgress();
+}
+
+function toggleOb(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('done');
+  const done = OB_ALL.filter(i => document.getElementById(i)?.classList.contains('done'));
+  localStorage.setItem(OB_KEY, JSON.stringify(done));
+  updateObProgress();
+}
+
+function updateObProgress() {
+  const done = OB_ALL.filter(i => document.getElementById(i)?.classList.contains('done'));
+  document.getElementById('ob-done-count').textContent = done.length;
+  document.getElementById('ob-total-count').textContent = OB_ALL.length;
+
+  // Phase badges
+  Object.entries(OB_PHASES).forEach(([ph, ids], idx) => {
+    const phDone = ids.filter(i => document.getElementById(i)?.classList.contains('done')).length;
+    const badge = document.getElementById('ph'+(idx+1)+'-badge');
+    if (badge) {
+      badge.textContent = phDone + '/' + ids.length;
+      badge.className = 'ob-phase-badge ' + (phDone === ids.length ? 'ob-phase-done' : 'ob-phase-pending');
+    }
+  });
+
+  // Congrats
+  const congrats = document.getElementById('ob-congrats');
+  if (congrats) congrats.classList.toggle('show', done.length === OB_ALL.length);
+}
+
+function resetOnboarding() {
+  if (!confirm('Reset all onboarding steps?')) return;
+  OB_ALL.forEach(id => document.getElementById(id)?.classList.remove('done'));
+  localStorage.removeItem(OB_KEY);
+  updateObProgress();
+}
+
+// Load onboarding when tab is switched to it
+const _origSwitchAdminTab = switchAdminTab;
+
 // ── Admin tab switching ──────────────────────────────
 function switchAdminTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -909,6 +1174,7 @@ function switchAdminTab(tab) {
   document.querySelector(`.admin-tab[onclick*="${tab}"]`).classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'pipeline') loadPipeline();
+  if (tab === 'onboarding') loadOnboarding();
 }
 
 // ── Pipeline (localStorage) ──────────────────────────
